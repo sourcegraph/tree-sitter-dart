@@ -5,7 +5,7 @@ Weird file
 d
 
 ---------------
-(program (ERROR (identifier)))
+(ERROR (ERROR (identifier)))
 
 =====================================
 more tests
@@ -1078,4 +1078,3 @@ class Hello {
                         (arguments))))))
               (return_statement
                 (identifier)))))))
-

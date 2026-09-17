@@ -1,5 +1,4 @@
 {
-  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
   "name": "dart",
   "word": "identifier",
   "rules": {
@@ -14051,6 +14050,5 @@
     "_declaration",
     "_statement",
     "_literal"
-  ],
-  "reserved": {}
+  ]
 }

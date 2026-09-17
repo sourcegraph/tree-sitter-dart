@@ -33,17 +33,18 @@
     "node-gyp-build": "^4.8.4"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.25.0"
+    "tree-sitter": "^0.22.4 || ^0.25.0"
   },
   "peerDependenciesMeta": {
-    "tree_sitter": {
+    "tree-sitter": {
       "optional": true
     }
   },
   "devDependencies": {
     "node-gyp": "^13.1.0",
     "npm-watch": "^0.13.0",
-    "tree-sitter-cli": "^0.26.10",
+    "tree-sitter": "0.22.4",
+    "tree-sitter-cli": "0.23.2",
     "prebuildify": "^6.0.1"
   },
   "watch": {
@@ -67,10 +68,11 @@
     }
   },
   "scripts": {
-    "build_init": "tree-sitter generate && node-gyp configure && node-gyp build",
-    "build": "tree-sitter generate && node-gyp build",
-    "test": "tree-sitter test",
-    "build-test": "tree-sitter generate && node-gyp build && tree-sitter test",
+    "build_init": "tree-sitter generate --no-bindings && node-gyp configure && node-gyp build",
+    "build": "tree-sitter generate --no-bindings && node-gyp build",
+    "test": "tree-sitter test && npm run test:bindings",
+    "test:bindings": "node --test bindings/node/*_test.js",
+    "build-test": "npm run build && npm test",
     "watch-test": "npm-watch test",
     "watch-grammar": "npm-watch build-test",
     "install": "node-gyp-build",
@@ -83,7 +85,9 @@
         "dart"
       ],
       "highlights": "queries/highlights.scm",
-      "tags": ["queries/tags.scm"],
+      "tags": [
+        "queries/tags.scm"
+      ],
       "injection-regex": "dart"
     }
   ]

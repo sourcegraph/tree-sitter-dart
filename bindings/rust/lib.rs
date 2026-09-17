@@ -1,52 +1,81 @@
-//! This crate provides dart language support for the [tree-sitter][] parsing library.
+//! This crate provides Dart language support for the [tree-sitter][] parsing library.
 //!
-//! Typically, you will use the [language][language func] function to add this language to a
+//! Typically, you will use the [LANGUAGE][] constant to add this language to a
 //! tree-sitter [Parser][], and then use the parser to parse some code:
 //!
 //! ```
-//! let code = "";
+//! let code = r#"
+//! void main() {
+//!   print('Hello, Dart!');
+//! }
+//! "#;
 //! let mut parser = tree_sitter::Parser::new();
-//! parser.set_language(tree_sitter_dart::language()).expect("Error loading dart grammar");
+//! let language = tree_sitter_dart::LANGUAGE;
+//! parser
+//!     .set_language(&language.into())
+//!     .expect("Error loading Dart parser");
 //! let tree = parser.parse(code, None).unwrap();
+//! assert!(!tree.root_node().has_error());
 //! ```
 //!
-//! [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
-//! [language func]: fn.language.html
 //! [Parser]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Parser.html
 //! [tree-sitter]: https://tree-sitter.github.io/
 
-use tree_sitter::Language;
+use tree_sitter_language::LanguageFn;
 
 extern "C" {
-    fn tree_sitter_dart() -> Language;
+    fn tree_sitter_dart() -> *const ();
 }
 
-/// Get the tree-sitter [Language][] for this grammar.
+/// The tree-sitter [`LanguageFn`][LanguageFn] for this grammar.
 ///
-/// [Language]: https://docs.rs/tree-sitter/*/tree_sitter/struct.Language.html
-pub fn language() -> Language {
-    unsafe { tree_sitter_dart() }
-}
+/// [LanguageFn]: https://docs.rs/tree-sitter-language/*/tree_sitter_language/struct.LanguageFn.html
+pub const LANGUAGE: LanguageFn = unsafe { LanguageFn::from_raw(tree_sitter_dart) };
 
 /// The content of the [`node-types.json`][] file for this grammar.
 ///
 /// [`node-types.json`]: https://tree-sitter.github.io/tree-sitter/using-parsers#static-node-types
 pub const NODE_TYPES: &str = include_str!("../../src/node-types.json");
 
-// Uncomment these to include any queries that this grammar contains
+// NOTE: uncomment these to include any queries that this grammar contains:
 
-// pub const HIGHLIGHTS_QUERY: &'static str = include_str!("../../queries/highlights.scm");
-// pub const INJECTIONS_QUERY: &'static str = include_str!("../../queries/injections.scm");
-// pub const LOCALS_QUERY: &'static str = include_str!("../../queries/locals.scm");
-// pub const TAGS_QUERY: &'static str = include_str!("../../queries/tags.scm");
+// pub const HIGHLIGHTS_QUERY: &str = include_str!("../../queries/highlights.scm");
+// pub const INJECTIONS_QUERY: &str = include_str!("../../queries/injections.scm");
+// pub const LOCALS_QUERY: &str = include_str!("../../queries/locals.scm");
+// pub const TAGS_QUERY: &str = include_str!("../../queries/tags.scm");
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_can_load_grammar() {
+    fn test_can_parse_dart() {
         let mut parser = tree_sitter::Parser::new();
+        let language: tree_sitter::Language = super::LANGUAGE.into();
+        assert_eq!(language.version(), 14);
         parser
-            .set_language(&super::language())
-            .expect("Error loading dart language");
+            .set_language(&language)
+            .expect("Error loading Dart parser");
+
+        // Exercise recent upstream syntax and the external string/comment scanner.
+        let source = r#"
+            void main() {
+                /* outer /* nested */ comment */
+                selector.field<int>(parametr);
+                Color color = .red;
+                print('Hello, ${color}!');
+            }
+        "#;
+        let tree = parser.parse(source, None).unwrap();
+        let root = tree.root_node();
+        assert_eq!(root.kind(), "program");
+        assert!(!root.has_error(), "{}", root.to_sexp());
+        let sexp = root.to_sexp();
+        for node in [
+            "type_arguments",
+            "dot_shorthand",
+            "comment",
+            "string_literal",
+        ] {
+            assert!(sexp.contains(&format!("({node}")), "{}", sexp);
+        }
     }
 }
